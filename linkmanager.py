@@ -15,6 +15,7 @@ LOG = logging.getLogger(__name__)
 
 
 def registrator(args):
+    time.sleep(15)
     while True:
         LOG.debug('registering address %s', args.address)
         res = requests.put('%s/v2/keys/%s/%s' % (args.etcd_server,
@@ -64,40 +65,44 @@ def linkbuilder(args):
     while True:
         res = requests.get('%s/v2/keys/%s' % (args.etcd_server,
                                              args.keyspace))
-        data = res.json()
-        links = data['node'].get('nodes', [])
-        LOG.debug('found %d links', len(links))
-        found_links = set()
-        for link in links:
-            addr = link['value']
-            LOG.debug('found link %s', addr)
-            if addr == args.address:
-                LOG.debug('%s is me (ignoring)', addr)
-                continue
 
-            found_links.add(addr)
+        if res.status_code == 200:
+            data = res.json()
+            links = data.get('node', {}).get('nodes', [])
+            LOG.debug('found %d links', len(links))
+            found_links = set()
+            for link in links:
+                addr = link['value']
+                LOG.debug('found link %s', addr)
+                if addr == args.address:
+                    LOG.debug('%s is me (ignoring)', addr)
+                    continue
 
-        remove_links = []
-        for link in active_links:
-            if link not in found_links:
-                LOG.info('removing link for %s' % link)
-                remove_links.append(link)
+                found_links.add(addr)
 
-        for link in remove_links:
-            active_links.remove(link)
-            ovs_remove_link(args, link)
+            remove_links = []
+            for link in active_links:
+                if link not in found_links:
+                    LOG.info('removing link for %s' % link)
+                    remove_links.append(link)
 
-        for link in found_links:
-            if link not in active_links:
-                LOG.info('adding link for %s' % link)
-                active_links.add(link)
-                ovs_create_link(args, link)
+            for link in remove_links:
+                active_links.remove(link)
+                ovs_remove_link(args, link)
+
+            for link in found_links:
+                if link not in active_links:
+                    LOG.info('adding link for %s' % link)
+                    active_links.add(link)
+                    ovs_create_link(args, link)
 
         # wait for updates
+        LOG.debug('sleeping for new links')
         requests.get('%s/v2/keys/%s' % (args.etcd_server,
                                         args.keyspace),
                      params={'wait': 'true',
                              'recursive': 'true'})
+        LOG.debug('waking up for new links')
 
 
 def parse_args():
