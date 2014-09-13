@@ -10,7 +10,9 @@ import netifaces
 import logging
 import subprocess
 
+
 LOG = logging.getLogger(__name__)
+
 
 def registrator(args):
     while True:
@@ -19,9 +21,9 @@ def registrator(args):
                                                  args.keyspace,
                                                  args.address),
                            data={'value': args.address,
-                                 'ttl': 30})
-        print res
-        time.sleep(15)
+                                 'ttl': args.ttl})
+        time.sleep(args.ttl/2)
+
 
 def ovs_bridge_exists(bridge):
     try:
@@ -31,6 +33,7 @@ def ovs_bridge_exists(bridge):
         return False
 
     return True
+
 
 def ovs_create_link(args, remote_addr):
     linkname = 'vxlan-%s' % '_'.join(remote_addr.split('.')[-2:])
@@ -44,6 +47,7 @@ def ovs_create_link(args, remote_addr):
         'options:remote_ip=%s' % remote_addr
     ])
 
+
 def ovs_remove_link(args, remote_addr):
     linkname = 'vxlan-%s' % '_'.join(remote_addr.split('.')[-2:])
 
@@ -53,11 +57,12 @@ def ovs_remove_link(args, remote_addr):
         'del-port', args.bridge, linkname
     ])
 
+
 def linkbuilder(args):
     active_links = set()
 
     while True:
-        res = requests.get('%s/v2/keys/%s'% (args.etcd_server,
+        res = requests.get('%s/v2/keys/%s' % (args.etcd_server,
                                              args.keyspace))
         data = res.json()
         links = data['node'].get('nodes', [])
@@ -83,16 +88,17 @@ def linkbuilder(args):
             ovs_remove_link(args, link)
 
         for link in found_links:
-            if not link in active_links:
+            if link not in active_links:
                 LOG.info('adding link for %s' % link)
                 active_links.add(link)
                 ovs_create_link(args, link)
 
         # wait for updates
-        requests.get('%s/v2/keys/%s'% (args.etcd_server,
-                                             args.keyspace),
-                           params={'wait': 'true',
-                                   'recursive': 'true'})
+        requests.get('%s/v2/keys/%s' % (args.etcd_server,
+                                        args.keyspace),
+                     params={'wait': 'true',
+                             'recursive': 'true'})
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -106,6 +112,9 @@ def parse_args():
                    default=None)
     p.add_argument('--keyspace', '-k',
                    default='links')
+    p.add_argument('--ttl', '-t',
+                   type=int,
+                   default=30)
 
     p.add_argument('--verbose', '-v',
                    action='store_const',
@@ -118,6 +127,7 @@ def parse_args():
 
     p.set_defaults(loglevel=logging.WARN)
     return p.parse_args()
+
 
 def main():
     args = parse_args()
@@ -152,4 +162,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
