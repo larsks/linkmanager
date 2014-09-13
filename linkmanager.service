@@ -1,0 +1,12 @@
+[Unit]
+Description=Linkmanager VXLAN link builder
+After=docker.socket openvswitch.service
+Requires=docker.socket openvswitch.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/linkmanager
+ExecStart=/usr/bin/linkmanager $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
