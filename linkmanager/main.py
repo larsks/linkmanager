@@ -37,6 +37,9 @@ def parse_args():
                    const=logging.DEBUG,
                    dest='loglevel')
 
+    p.add_argument('--secret', '-S',
+                   help='Used to sign addresses in etcd')
+
     p.set_defaults(loglevel=logging.WARN)
     return p.parse_args()
 
@@ -70,10 +73,12 @@ def main():
 
     reg = Registrator(args.address, client,
                       prefix=args.prefix,
-                      ttl=args.ttl)
+                      ttl=args.ttl,
+                      key=args.secret)
     monitor = Monitor(args.address, client,
                       prefix=args.prefix,
-                      ttl=args.ttl)
+                      ttl=args.ttl,
+                      key=args.secret)
 
     reg.start()
     monitor.start()
