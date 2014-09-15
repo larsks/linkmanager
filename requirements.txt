@@ -1,5 +1,2 @@
 requests
 netifaces
-hmac
-hashlib
-

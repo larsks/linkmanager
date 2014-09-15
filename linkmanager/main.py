@@ -15,18 +15,27 @@ LOG = logging.getLogger(__name__)
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--bridge', '-b',
-                   default='obr0')
+                   default='obr0',
+                   help='Name of OVS bridge to manage')
     p.add_argument('--etcd-server', '-s',
-                   default='http://localhost:4001')
+                   default='http://localhost:4001',
+                   help='URL to etcd server')
     p.add_argument('--device', '-d',
-                   default='eth0')
+                   default='eth0',
+                   help='Device from which to discover local address')
     p.add_argument('--address', '-a',
-                   default=None)
+                   default=None,
+                   help='Use an explicit address')
     p.add_argument('--prefix', '-p',
-                   default='links')
+                   default='links',
+                   help='Use this key path in etcd')
     p.add_argument('--ttl', '-t',
                    type=int,
-                   default=30)
+                   default=30,
+                   help='Expiration time for host registrations')
+    p.add_argument('--secret', '-S',
+                   help='Used to sign addresses in etcd')
+
 
     p.add_argument('--verbose', '-v',
                    action='store_const',
@@ -36,9 +45,6 @@ def parse_args():
                    action='store_const',
                    const=logging.DEBUG,
                    dest='loglevel')
-
-    p.add_argument('--secret', '-S',
-                   help='Used to sign addresses in etcd')
 
     p.set_defaults(loglevel=logging.WARN)
     return p.parse_args()
