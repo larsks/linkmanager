@@ -2,6 +2,16 @@ This is a simple tool to maintain a vxlan overlay network among a
 group of hosts.  It was designed for use with Kubernetes and relies on
 etcd to handle host discovery.
 
+When you run Linkmanager, it will start two processes:
+
+- One will register the current host in etcd at regular intervals.
+  These registrations have an associated TTL so that if the host goes
+  down, the registration will expire and participating hosts will tear
+  down the associated VXLAN links.
+
+- The other watches the registry for updates, and creates or removes
+  VXLAN links as appropriate.
+
 
 ## Synopsis
 
@@ -27,6 +37,12 @@ etcd to handle host discovery.
                           Used to sign addresses in etcd
     --verbose, -v
     --debug, -D
+
+## Security
+
+All hosts participating in the overlay network must use the same value
+for `--secret`.  This used to generate a SHA256 HMAC signature on
+registrations in etcd.
 
 ## Example usage
 
